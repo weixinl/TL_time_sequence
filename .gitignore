@@ -1,0 +1,6 @@
+__pycache__/
+data/
+prev/
+results/
+shells_by_device/
+tmp_models/
