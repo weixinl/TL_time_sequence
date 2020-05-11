@@ -294,7 +294,7 @@ def split_subject_group(_subject_num_each_group=6,_a_ratio=0.5):
         zipped_dataset_b.save(feature_b_path,label_b_path,domain_b_path)
 
 
-def get_zipped_dataset(_groups_dir,_tar_group_id,_group_num):
+def get_src_zipped_dataset(_groups_dir,_tar_group_id,_group_num):
     # tar_group_dir=_groups_dir+"/group_"+str(_tar_group_id)
     # tar_feature_path=tar_group_dir+"/feature.txt"
     # tar_label_path=tar_group_dir+"/label.txt"
@@ -365,7 +365,7 @@ def get_zipped_dataset(_groups_dir,_tar_group_id,_group_num):
     src_valid_zipped_dataset.data_shuffle()
     # tar_zipped_dataset.data_shuffle()
 
-    return src_train_zipped_dataset,src_valid_zipped_dataset,None
+    return src_train_zipped_dataset,src_valid_zipped_dataset
 
 
 def get_dataloader(_groups_dir,_tar_group_id,_group_num):

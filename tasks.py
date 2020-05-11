@@ -4,6 +4,7 @@ from config import config_dict
 # from network import *
 import models
 import savers
+import get_data
 
 def baseline_task(_tar_group_id):
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
@@ -141,8 +142,6 @@ def finetune_model_test(_tar_group_id,_device_id=0):
     finetune_obj=models.Finetune(config_dict,None,prev_model_path,_device_id)
     finetune_obj.test(best_model_path,test_dataloader)
 
-
-
 def transfer_task(_tar_group_id,_device_id=0):
     _device_id=_tar_group_id
     label_num=6
@@ -212,7 +211,6 @@ def get_domain_specific_dataloader_lists(_tar_group_id,_group_num):
         src_domain_specific_a_dataloader_list.append(specific_group_a_dataloader)
         src_domain_specific_b_dataloader_list.append(specific_group_b_dataloader)
     return src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list
-
 
 
 def two_step_transfer_task(_tar_group_id,_device_id=0):
@@ -290,9 +288,6 @@ def two_step_transfer_task(_tar_group_id,_device_id=0):
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
         _saver=saver)
     
-    
-
-
 def get_zipped_dataset_from_specific_group(_group_id,_item_num=100):
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
     groups_dir=cwd_abs_path+"/data/ucihar/splitted/each_group_6_subject"
@@ -310,10 +305,6 @@ def get_zipped_dataset_from_specific_group(_group_id,_item_num=100):
     label_list_concat=label_list[:]
     domain_list_concat=domain_list[:]
     return utils.Zipped_Dataset(feature_list_concat,label_list_concat,domain_list_concat)
-
-
-    
-
 
 def test_task():
     _tar_group_id=4
@@ -454,7 +445,7 @@ def transfer_share_encoder_task(_tar_group_id,_device_id=0):
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
         _saver=saver)
 
-def transfer_with_reconstruct_task(_tar_group_id,_device_id=0):
+def transfer_with_reconstruct_task(_data_name,_tar_group_id,_device_id=0):
     _device_id=_tar_group_id
     label_num=6
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
@@ -518,3 +509,4 @@ def transfer_with_reconstruct_task(_tar_group_id,_device_id=0):
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
         _saver=saver)
     
+def small_ucihar_task():

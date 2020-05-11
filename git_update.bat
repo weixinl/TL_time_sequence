@@ -1,3 +1,3 @@
 git add -A
-git commit -m "check ucihar set"
+git commit -m "small ucihar task"
 git push origin master:master
