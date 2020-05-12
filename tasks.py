@@ -1,6 +1,6 @@
 import utils
 from my_env import *
-from config import config_dict 
+import my_config
 # from network import *
 import models
 import savers
@@ -445,49 +445,52 @@ def transfer_share_encoder_task(_tar_group_id,_device_id=0):
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
         _saver=saver)
 
-def transfer_with_reconstruct_task(_data_name,_tar_group_id,_device_id=0):
-    _device_id=_tar_group_id
-    label_num=6
+def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0):
+    # _device_id=_tar_group_id
+    label_num=int(_config["label_num"])
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
-    subject_num_each_group=6
-    group_num=UCIHAR_SUBJECT_NUM//subject_num_each_group
+    # subject_num_each_group=6
+    # group_num=UCIHAR_SUBJECT_NUM//subject_num_each_group
 
-    groups_dir=cwd_abs_path+"/data/ucihar/splitted/each_group_"+str(subject_num_each_group)+"_subject"
-    group_dir=groups_dir+"/group_"+str(_tar_group_id)
+    groups_dir=cwd_abs_path+"/data/"+_data_name
+    # tar_group_dir=groups_dir+"/group_"+str(_tar_group_id)
 
-    log_save_dir=cwd_abs_path+"/results/log/transfer_with_reconstruct"
+    log_save_dir=cwd_abs_path+"/results/"+_data_name+"/log/transfer_with_reconstruct"
     utils.os_check_dir(log_save_dir)
     log_save_path=log_save_dir+"/log_tar_group_id_"+str(_tar_group_id)+".csv"
 
-    best_model_info_dir=cwd_abs_path+"/results/best_model_infos/transfer_with_reconstruct"
+    best_model_info_dir=cwd_abs_path+"/results/"+_data_name+"/best_model_infos/transfer_with_reconstruct"
     utils.os_check_dir(best_model_info_dir)
     best_model_info_path=best_model_info_dir+"/best_model_info_tar_group_id_"+str(_tar_group_id)+".csv"
 
-    best_model_dir=cwd_abs_path+"/results/best_models/transfer_with_reconstruct"
+    best_model_dir=cwd_abs_path+"/results/"+_data_name+"/best_models/transfer_with_reconstruct"
     utils.os_check_dir(best_model_dir)
     best_model_path=best_model_dir+"/best_model_tar_group_id_"+str(_tar_group_id)+".pkl"
 
-    tmp_models_dir=cwd_abs_path+"/tmp_models"
+    tmp_models_dir=cwd_abs_path+"/tmp_models/"+_data_name
     best_domain_branch_path=tmp_models_dir+"/best_domain_tar_group_id_"+str(_tar_group_id)+".pkl"
+
+    train_dataloader,valid_dataloader,test_dataloader=\
+        get_data.get_dataloaders(groups_dir,group_num)
     
-    src_train_zipped_dataset ,src_valid_zipped_dataset,_ =utils.get_zipped_dataset(groups_dir,_tar_group_id,group_num)
-    src_train_dataloader=utils.zipped_dataset_to_dataloader(src_train_zipped_dataset)
-    src_valid_dataloader=utils.zipped_dataset_to_dataloader(src_valid_zipped_dataset)
+    # src_train_zipped_dataset ,src_valid_zipped_dataset,_ =utils.get_zipped_dataset(groups_dir,_tar_group_id,group_num)
+    # src_train_dataloader=utils.zipped_dataset_to_dataloader(src_train_zipped_dataset)
+    # src_valid_dataloader=utils.zipped_dataset_to_dataloader(src_valid_zipped_dataset)
 
 
-    feature_b_path=group_dir+"/feature_b.txt"
-    label_b_path=group_dir+"/label_b.txt"
-    domain_b_path=group_dir+"/domain_b.txt"
-    tar_b_zipped_dataset=utils.load_zipped_dataset(feature_b_path,label_b_path,domain_b_path)
-    tar_b_dataloader=utils.zipped_dataset_to_dataloader(tar_b_zipped_dataset)
+    # feature_b_path=group_dir+"/feature_b.txt"
+    # label_b_path=group_dir+"/label_b.txt"
+    # domain_b_path=group_dir+"/domain_b.txt"
+    # tar_b_zipped_dataset=utils.load_zipped_dataset(feature_b_path,label_b_path,domain_b_path)
+    # tar_b_dataloader=utils.zipped_dataset_to_dataloader(tar_b_zipped_dataset)
 
-    train_dataloader=src_train_dataloader
-    # print("train dataloader shape:")
-    # print(train_dataloader.dataset.feature_list.shape)
-    valid_dataloader=src_valid_dataloader
-    test_dataloader=tar_b_dataloader
+    # train_dataloader=src_train_dataloader
+    # # print("train dataloader shape:")
+    # # print(train_dataloader.dataset.feature_list.shape)
+    # valid_dataloader=src_valid_dataloader
+    # test_dataloader=tar_b_dataloader
 
-    pretrain_obj=models.Transfer_Pretrain(_config_dict=config_dict,\
+    domain_branch_pretrain_obj=models.Domain_Branch_Pretrain(_config=_config,\
         _domain_num=group_num-1,\
         _label_num=label_num,_device_id=_device_id)
 

@@ -1099,7 +1099,7 @@ class Label_Branch_Pretrain_Share_Encoder(nn.Module):
         acc = float(acc_cnt)/(_data_batch_num*self.batch_size)
         return acc
 
-class Transfer_Pretrain(nn.Module):
+class Domain_Branch_Pretrain(nn.Module):
     def __init__(self,_config_dict,_domain_num,_label_num,\
     _device_id=0):
         super(Transfer_Pretrain, self).__init__()
@@ -1189,7 +1189,8 @@ class Transfer_Pretrain(nn.Module):
 
         self.domain_branch_saver.final_print()
 
-        
+
+class Label_Branch_Pretrain(nn.Module):      
     def initialize_pretrain_subbranches(self):
 
         for subbranch_id in range(self.domain_num):

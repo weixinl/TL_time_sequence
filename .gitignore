@@ -1,6 +1,7 @@
 __pycache__/
 data/
 prev/
+results_prev/
 results/
 shells_by_device/
 tmp_models/

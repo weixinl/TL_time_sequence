@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 def os_check_dir(_dir):
     if not os.path.exists(_dir):
+        # multiple
         os.makedirs(_dir)
 
 def get_raw_feature_list(_feature_path_by_signal):
