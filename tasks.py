@@ -495,7 +495,7 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
         _label_num=label_num,_device_id=_device_id)
 
     transfer_domain_branch_saver=savers.Transfer_Domain_Branch_Saver(best_domain_branch_path)
-    pretrain_obj.domain_branch_pretrain(_train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
+    domain_branch_pretrain_obj.domain_branch_pretrain(_train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
         _domain_branch_saver=transfer_domain_branch_saver)
 
     src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list=get_domain_specific_dataloader_lists(_tar_group_id,group_num)
@@ -513,3 +513,4 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
         _saver=saver)
     
 def small_ucihar_task():
+    

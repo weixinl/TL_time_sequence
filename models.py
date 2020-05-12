@@ -1102,8 +1102,8 @@ class Label_Branch_Pretrain_Share_Encoder(nn.Module):
 class Domain_Branch_Pretrain(nn.Module):
     def __init__(self,_config_dict,_domain_num,_label_num,\
     _device_id=0):
-        super(Transfer_Pretrain, self).__init__()
-        self.epoch_num=_config_dict["epoch_num"]
+        super(Domain_Branch_Pretrain, self).__init__()
+        self.epoch_num=_config_dict["domain_pretrain_epoch_num"]
         self.lr=_config_dict["lr"]
         self.momentum=_config_dict["momentum"]
         self.batch_size=_config_dict["batch_size"]
