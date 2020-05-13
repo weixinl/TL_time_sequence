@@ -186,31 +186,7 @@ def transfer_task(_tar_group_id,_device_id=0):
     transfer_obj.train(train_dataloader,valid_dataloader,test_dataloader,_tar_group_id)
     transfer_obj.save_results()
 
-def get_domain_specific_dataloader_lists(_tar_group_id,_group_num):
-    cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
-    src_group_id_list=[]
-    for group_id in range(_group_num):
-        if(group_id==_tar_group_id):
-            continue
-        src_group_id_list.append(group_id)
-    src_domain_specific_a_dataloader_list=[]
-    src_domain_specific_b_dataloader_list=[]
-    for src_group_id in src_group_id_list:
-        groups_dir=cwd_abs_path+"/data/ucihar/splitted/each_group_6_subject"
-        group_dir=groups_dir+"/group_"+str(src_group_id)
-        feature_a_path=group_dir+"/feature_a.txt"
-        label_a_path=group_dir+"/label_a.txt"
-        domain_a_path=group_dir+"/domain_a.txt"
-        feature_b_path=group_dir+"/feature_b.txt"
-        label_b_path=group_dir+"/label_b.txt"
-        domain_b_path=group_dir+"/domain_b.txt"
-        specific_group_a_zipped_dataset=utils.load_zipped_dataset(feature_a_path,label_a_path,domain_a_path)
-        specific_group_b_zipped_dataset=utils.load_zipped_dataset(feature_b_path,label_b_path,domain_b_path)
-        specific_group_a_dataloader=utils.zipped_dataset_to_dataloader(specific_group_a_zipped_dataset)
-        specific_group_b_dataloader=utils.zipped_dataset_to_dataloader(specific_group_b_zipped_dataset)
-        src_domain_specific_a_dataloader_list.append(specific_group_a_dataloader)
-        src_domain_specific_b_dataloader_list.append(specific_group_b_dataloader)
-    return src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list
+
 
 
 def two_step_transfer_task(_tar_group_id,_device_id=0):
@@ -448,6 +424,7 @@ def transfer_share_encoder_task(_tar_group_id,_device_id=0):
 def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0):
     # _device_id=_tar_group_id
     label_num=int(_config["label_num"])
+    group_num=int(_config["group_num"])
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
     # subject_num_each_group=6
     # group_num=UCIHAR_SUBJECT_NUM//subject_num_each_group
@@ -471,46 +448,29 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
     best_domain_branch_path=tmp_models_dir+"/best_domain_tar_group_id_"+str(_tar_group_id)+".pkl"
 
     train_dataloader,valid_dataloader,test_dataloader=\
-        get_data.get_dataloaders(groups_dir,group_num)
+        get_data.get_dataloaders(groups_dir,group_num,_tar_group_id)
     
-    # src_train_zipped_dataset ,src_valid_zipped_dataset,_ =utils.get_zipped_dataset(groups_dir,_tar_group_id,group_num)
-    # src_train_dataloader=utils.zipped_dataset_to_dataloader(src_train_zipped_dataset)
-    # src_valid_dataloader=utils.zipped_dataset_to_dataloader(src_valid_zipped_dataset)
-
-
-    # feature_b_path=group_dir+"/feature_b.txt"
-    # label_b_path=group_dir+"/label_b.txt"
-    # domain_b_path=group_dir+"/domain_b.txt"
-    # tar_b_zipped_dataset=utils.load_zipped_dataset(feature_b_path,label_b_path,domain_b_path)
-    # tar_b_dataloader=utils.zipped_dataset_to_dataloader(tar_b_zipped_dataset)
-
-    # train_dataloader=src_train_dataloader
-    # # print("train dataloader shape:")
-    # # print(train_dataloader.dataset.feature_list.shape)
-    # valid_dataloader=src_valid_dataloader
-    # test_dataloader=tar_b_dataloader
-
-    domain_branch_pretrain_obj=models.Domain_Branch_Pretrain(_config=_config,\
-        _domain_num=group_num-1,\
-        _label_num=label_num,_device_id=_device_id)
+    transfer_domain_branch_pretrain_obj=models.Transfer_Domain_Branch_Pretrain(_config=_config,\
+        _device_id=_device_id)
 
     transfer_domain_branch_saver=savers.Transfer_Domain_Branch_Saver(best_domain_branch_path)
-    domain_branch_pretrain_obj.domain_branch_pretrain(_train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
+    transfer_domain_branch_pretrain_obj.domain_branch_pretrain(_train_dataloader=train_dataloader,\
+        _valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
         _domain_branch_saver=transfer_domain_branch_saver)
 
-    src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list=get_domain_specific_dataloader_lists(_tar_group_id,group_num)
-    tmp_models_dir=cwd_abs_path+"/tmp_models"
+    src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list=\
+        get_data.get_domain_specific_dataloader_lists(groups_dir,group_num,_tar_group_id)
+    tmp_models_dir=cwd_abs_path+"/tmp_models/"+"data_name"
     label_subbranches_dir=tmp_models_dir+"/tar_group_"+str(_tar_group_id)
     utils.os_check_dir(label_subbranches_dir)
-    pretrain_obj.subbranches_pretrain(_train_dataloader_list=src_domain_specific_a_dataloader_list,_valid_dataloader_list=src_domain_specific_b_dataloader_list,\
+    label_branch_pretrain_obj=models.Transfer_Label_Branch_Pretrain(_config,_device_id)
+    label_branch_pretrain_obj.subbranches_pretrain(_train_dataloader_list=src_domain_specific_a_dataloader_list,_valid_dataloader_list=src_domain_specific_b_dataloader_list,\
         _subbranches_dir=label_subbranches_dir)
 
     saver=savers.Transfer_Saver(log_save_path,best_model_info_path,best_model_path)
-    transfer_obj=models.Transfer_With_Reconstruct(_config_dict=config_dict,_domain_num=group_num-1,\
-        _label_num=label_num,_device_id=_device_id)
+    transfer_obj=models.Transfer_With_Reconstruct(_config=_config,_device_id=_device_id)
     transfer_obj.train_model(_pretrain_domain_branch_path=best_domain_branch_path,_pretrain_subbranches_dir=label_subbranches_dir,\
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
         _saver=saver)
     
 def small_ucihar_task():
-    

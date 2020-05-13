@@ -906,17 +906,17 @@ class Label_Branch_Pretrain_Share_Encoder(nn.Module):
         self.subbranch_optimizer_list=[]
 
         
-    def initialize_pretrain_subbranches(self):
+    # def initialize_pretrain_subbranches(self):
 
-        for subbranch_id in range(self.domain_num):
-            subbranch=Label_Subbranch_Share_Encoder(self.encoder,self.label_num,self.device).to(self.device)
-            self.pretrain_subbranch_list.append(subbranch)
-            subbranch_model_path=self.label_subbranches_dir+"/label_subbranch_"+str(subbranch_id)+".pkl"
-            subbranch_saver=savers.Transfer_Label_Subbranch_Saver(subbranch_model_path)
-            self.subbranch_saver_list.append(subbranch_saver)
-            subbranch_params=subbranch.get_parameters_inclu_encoder()
-            subbranch_optimizer = optim.SGD(params=subbranch_params, lr=self.lr, momentum=self.momentum)
-            self.subbranch_optimizer_list.append(subbranch_optimizer)
+    #     for subbranch_id in range(self.domain_num):
+    #         subbranch=Label_Subbranch_Share_Encoder(self.encoder,self.label_num,self.device).to(self.device)
+    #         self.pretrain_subbranch_list.append(subbranch)
+    #         subbranch_model_path=self.label_subbranches_dir+"/label_subbranch_"+str(subbranch_id)+".pkl"
+    #         subbranch_saver=savers.Transfer_Label_Subbranch_Saver(subbranch_model_path)
+    #         self.subbranch_saver_list.append(subbranch_saver)
+    #         subbranch_params=subbranch.get_parameters_inclu_encoder()
+    #         subbranch_optimizer = optim.SGD(params=subbranch_params, lr=self.lr, momentum=self.momentum)
+    #         self.subbranch_optimizer_list.append(subbranch_optimizer)
     
     def subbranches_pretrain(self):
         for epoch_id in range(self.epoch_num):
@@ -1099,29 +1099,20 @@ class Label_Branch_Pretrain_Share_Encoder(nn.Module):
         acc = float(acc_cnt)/(_data_batch_num*self.batch_size)
         return acc
 
-class Domain_Branch_Pretrain(nn.Module):
-    def __init__(self,_config_dict,_domain_num,_label_num,\
-    _device_id=0):
-        super(Domain_Branch_Pretrain, self).__init__()
-        self.epoch_num=_config_dict["domain_pretrain_epoch_num"]
-        self.lr=_config_dict["lr"]
-        self.momentum=_config_dict["momentum"]
-        self.batch_size=_config_dict["batch_size"]
+class Transfer_Domain_Branch_Pretrain(nn.Module):
+    def __init__(self,_config,_device_id=0):
+        super(Transfer_Domain_Branch_Pretrain, self).__init__()
+        self.epoch_num=_config["domain_branch_epoch_num"]
+        self.lr=_config["domain_branch_lr"]
+        self.momentum=_config["domain_branch_momentum"]
+        self.batch_size=_config["domain_branch_batch_size"]
         # self.domain_branch_saver=_domain_branch_saver
         # self.label_branch_saver=_label_branch_saver
         # self.saver=_saver
-        self.domain_num=_domain_num
+        self.domain_num=_config["domain_num"]
         # self.label_num=_label_num
         self.device=torch.device('cuda:'+str(_device_id) if torch.cuda.is_available() else 'cpu')
-
-
         self.cross_entropy_loss_obj=nn.CrossEntropyLoss()
-        
-        # self.train_dataloader_list=_src_dataloader_a_list
-        # self.valid_dataloader_list=_src_dataloader_b_list
-        # self.pretrain_subbranch_list=[]
-        # self.subbranch_saver_list=[]
-        # self.subbranch_optimizer_list=[]
     
     def domain_branch_pretrain(self,_train_dataloader,_valid_dataloader,_tar_group_id,_domain_branch_saver):
         self.domain_branch_saver=_domain_branch_saver
@@ -1165,12 +1156,10 @@ class Domain_Branch_Pretrain(nn.Module):
             
             train_domain_acc=float(train_domain_acc_cnt)/(train_batch_num*self.batch_size)
             
-
             domain_branch.eval() 
             valid_domain_acc_cnt=0
             with torch.no_grad():
                 for index,(feature, label, domain) in enumerate(_valid_dataloader):
-
                     feature= feature.to(self.device).float()
                     for entry_id in range(self.batch_size):
                         domain_item=domain[entry_id]
@@ -1179,7 +1168,6 @@ class Domain_Branch_Pretrain(nn.Module):
                     domain = domain.to(self.device).long()
                     feature = feature.view(-1, 9, 1, 128)
                     domain_probs_predict = domain_branch(feature)
-
                     _, domain_predict = torch.max(domain_probs_predict, 1)
                     valid_domain_acc_cnt += (domain_predict == domain).sum()
             valid_domain_acc=float(valid_domain_acc_cnt)/(valid_batch_num*self.batch_size)
@@ -1190,18 +1178,32 @@ class Domain_Branch_Pretrain(nn.Module):
         self.domain_branch_saver.final_print()
 
 
-class Label_Branch_Pretrain(nn.Module):      
-    def initialize_pretrain_subbranches(self):
+class Transfer_Label_Branch_Pretrain(nn.Module):  
+    def __init__(self,_config,_device_id=0):
+        super(Transfer_Label_Branch_Pretrain, self).__init__()
+        self.epoch_num=_config["label_branch_epoch_num"]
+        self.lr=_config["label_branch_lr"]
+        self.momentum=_config["label_branch_momentum"]
+        self.batch_size=_config["label_branch_batch_size"]
+        # self.domain_branch_saver=_domain_branch_saver
+        # self.label_branch_saver=_label_branch_saver
+        # self.saver=_saver
+        self.domain_num=_config["domain_num"]
+        self.label_num=_config["label_num"]
+        self.device=torch.device('cuda:'+str(_device_id) if torch.cuda.is_available() else 'cpu')
+        self.cross_entropy_loss_obj=nn.CrossEntropyLoss()   
 
-        for subbranch_id in range(self.domain_num):
-            subbranch=Label_Subbranch_Share_Encoder(self.encoder,self.label_num,self.device).to(self.device)
-            self.pretrain_subbranch_list.append(subbranch)
-            subbranch_model_path=self.label_subbranches_dir+"/label_subbranch_"+str(subbranch_id)+".pkl"
-            subbranch_saver=savers.Transfer_Label_Subbranch_Saver(subbranch_model_path)
-            self.subbranch_saver_list.append(subbranch_saver)
-            subbranch_params=subbranch.get_parameters_inclu_encoder()
-            subbranch_optimizer = optim.SGD(params=subbranch_params, lr=self.lr, momentum=self.momentum)
-            self.subbranch_optimizer_list.append(subbranch_optimizer)
+    # def initialize_pretrain_subbranches(self):
+
+    #     for subbranch_id in range(self.domain_num):
+    #         subbranch=Label_Subbranch_Share_Encoder(self.encoder,self.label_num,self.device).to(self.device)
+    #         self.pretrain_subbranch_list.append(subbranch)
+    #         subbranch_model_path=self.label_subbranches_dir+"/label_subbranch_"+str(subbranch_id)+".pkl"
+    #         subbranch_saver=savers.Transfer_Label_Subbranch_Saver(subbranch_model_path)
+    #         self.subbranch_saver_list.append(subbranch_saver)
+    #         subbranch_params=subbranch.get_parameters_inclu_encoder()
+    #         subbranch_optimizer = optim.SGD(params=subbranch_params, lr=self.lr, momentum=self.momentum)
+    #         self.subbranch_optimizer_list.append(subbranch_optimizer)
     
     def subbranches_pretrain(self,_train_dataloader_list,_valid_dataloader_list,_subbranches_dir):
 
