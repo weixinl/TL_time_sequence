@@ -15,18 +15,18 @@ def get_zipped_datasets(_groups_dir,_group_num,_tar_group_id):
 
 
 
-def get_dataloaders(_groups_dir,_group_num,_tar_group_id):
+def get_dataloaders(_groups_dir,_group_num,_tar_group_id,_batch_size):
     src_a_zipped_dataset,src_b_zipped_dataset,tar_zipped_dataset=\
         get_zipped_datasets(_groups_dir,_group_num,_tar_group_id)
-    train_dataloader=utils.zipped_dataset_to_dataloader(src_a_zipped_dataset)
-    valid_dataloader=utils.zipped_dataset_to_dataloader(src_b_zipped_dataset)
-    test_dataloader=utils.zipped_dataset_to_dataloader(tar_zipped_dataset)
+    train_dataloader=utils.zipped_dataset_to_dataloader(src_a_zipped_dataset,_batch_size)
+    valid_dataloader=utils.zipped_dataset_to_dataloader(src_b_zipped_dataset,_batch_size)
+    test_dataloader=utils.zipped_dataset_to_dataloader(tar_zipped_dataset,_batch_size)
 
     # print("train dataloader shape:")
     # print(train_dataloader.dataset.feature_list.shape)
     return train_dataloader,valid_dataloader,test_dataloader
 
-def get_domain_specific_dataloader_lists(_groups_dir,_group_num,_tar_group_id):
+def get_domain_specific_dataloader_lists(_groups_dir,_group_num,_tar_group_id,_batch_size):
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
     src_group_id_list=[]
     for group_id in range(_group_num):
@@ -45,8 +45,8 @@ def get_domain_specific_dataloader_lists(_groups_dir,_group_num,_tar_group_id):
         domain_b_path=group_dir+"/domain_b.txt"
         specific_group_a_zipped_dataset=utils.load_zipped_dataset(feature_a_path,label_a_path,domain_a_path)
         specific_group_b_zipped_dataset=utils.load_zipped_dataset(feature_b_path,label_b_path,domain_b_path)
-        specific_group_a_dataloader=utils.zipped_dataset_to_dataloader(specific_group_a_zipped_dataset)
-        specific_group_b_dataloader=utils.zipped_dataset_to_dataloader(specific_group_b_zipped_dataset)
+        specific_group_a_dataloader=utils.zipped_dataset_to_dataloader(specific_group_a_zipped_dataset,_batch_size)
+        specific_group_b_dataloader=utils.zipped_dataset_to_dataloader(specific_group_b_zipped_dataset,_batch_size)
         src_domain_specific_a_dataloader_list.append(specific_group_a_dataloader)
         src_domain_specific_b_dataloader_list.append(specific_group_b_dataloader)
     return src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list

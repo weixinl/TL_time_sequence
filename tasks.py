@@ -6,31 +6,32 @@ import models
 import savers
 import get_data
 
-def baseline_task(_tar_group_id):
+def baseline_task(_data_name,_config,_tar_group_id,_device_id):
     cwd_abs_path=os.path.abspath(os.path.dirname(__file__))
-    subject_num_each_group=6
-    group_num=UCIHAR_SUBJECT_NUM//subject_num_each_group
+    label_num=int(_config["label_num"])
+    group_num=int(_config["group_num"])
 
-    groups_dir=cwd_abs_path+"/data/ucihar/splitted/each_group_"+str(subject_num_each_group)+"_subject"
+    groups_dir=cwd_abs_path+"/data/"+_data_name
 
-    log_save_dir=cwd_abs_path+"/results/log/baseline"
+    log_save_dir=cwd_abs_path+"/results/"+_data_name+"/log/baseline"
     utils.os_check_dir(log_save_dir)
     log_save_path=log_save_dir+"/log_tar_group_id_"+str(_tar_group_id)+".csv"
 
-    best_model_info_dir=cwd_abs_path+"/results/best_model_infos/baseline"
+    best_model_info_dir=cwd_abs_path+"/results/"+_data_name+"/best_model_infos/baseline"
     utils.os_check_dir(best_model_info_dir)
     best_model_info_path=best_model_info_dir+"/best_model_info_tar_group_id_"+str(_tar_group_id)+".csv"
 
-    best_model_dir=cwd_abs_path+"/results/best_models/baseline"
+    best_model_dir=cwd_abs_path+"/results/"+_data_name+"/best_models/baseline"
     utils.os_check_dir(best_model_dir)
     best_model_path=best_model_dir+"/best_model_tar_group_id_"+str(_tar_group_id)+".pkl"
     
-    src_train_dataloader,src_valid_dataloader,tar_dataloader=utils.get_dataloader(groups_dir,_tar_group_id,group_num)
-    print("size of src_train_dataloader: "+str(len(src_train_dataloader.dataset)))
+    train_dataloader,valid_dataloader,test_dataloader=\
+        get_data.get_dataloaders(groups_dir,group_num,_tar_group_id,_config["batch_size"])
+    # print("size of src_train_dataloader: "+str(len(src_train_dataloader.dataset)))
     saver=savers.Baseline_Saver(log_save_path,best_model_info_path,best_model_path)
     
-    baseline_obj=models.Baseline(config_dict,saver)
-    baseline_obj.train(src_train_dataloader,src_valid_dataloader,tar_dataloader)
+    baseline_obj=models.Baseline(_config,saver,_device_id)
+    baseline_obj.train(train_dataloader,valid_dataloader,test_dataloader)
     baseline_obj.save_log()
 
 def baseline_model_test(_tar_group_id):
@@ -445,11 +446,13 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
     best_model_path=best_model_dir+"/best_model_tar_group_id_"+str(_tar_group_id)+".pkl"
 
     tmp_models_dir=cwd_abs_path+"/tmp_models/"+_data_name
+    utils.os_check_dir(tmp_models_dir)
     best_domain_branch_path=tmp_models_dir+"/best_domain_tar_group_id_"+str(_tar_group_id)+".pkl"
 
     train_dataloader,valid_dataloader,test_dataloader=\
-        get_data.get_dataloaders(groups_dir,group_num,_tar_group_id)
+        get_data.get_dataloaders(groups_dir,group_num,_tar_group_id,_config["batch_size"])
     
+    # domain branch pretrain
     transfer_domain_branch_pretrain_obj=models.Transfer_Domain_Branch_Pretrain(_config=_config,\
         _device_id=_device_id)
 
@@ -458,19 +461,41 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
         _valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
         _domain_branch_saver=transfer_domain_branch_saver)
 
+    # label branch pretrain
     src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list=\
-        get_data.get_domain_specific_dataloader_lists(groups_dir,group_num,_tar_group_id)
+        get_data.get_domain_specific_dataloader_lists(groups_dir,group_num,_tar_group_id,\
+        _config["label_branch_batch_size"])
     tmp_models_dir=cwd_abs_path+"/tmp_models/"+"data_name"
     label_subbranches_dir=tmp_models_dir+"/tar_group_"+str(_tar_group_id)
     utils.os_check_dir(label_subbranches_dir)
     label_branch_pretrain_obj=models.Transfer_Label_Branch_Pretrain(_config,_device_id)
-    label_branch_pretrain_obj.subbranches_pretrain(_train_dataloader_list=src_domain_specific_a_dataloader_list,_valid_dataloader_list=src_domain_specific_b_dataloader_list,\
+    label_branch_pretrain_obj.subbranches_pretrain(\
+        _train_dataloader_list=src_domain_specific_a_dataloader_list,\
+        _valid_dataloader_list=src_domain_specific_b_dataloader_list,\
         _subbranches_dir=label_subbranches_dir)
 
+    # train
     saver=savers.Transfer_Saver(log_save_path,best_model_info_path,best_model_path)
     transfer_obj=models.Transfer_With_Reconstruct(_config=_config,_device_id=_device_id)
-    transfer_obj.train_model(_pretrain_domain_branch_path=best_domain_branch_path,_pretrain_subbranches_dir=label_subbranches_dir,\
-        _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,_test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,\
-        _saver=saver)
+    transfer_obj.train_model(_pretrain_domain_branch_path=best_domain_branch_path,\
+        _pretrain_subbranches_dir=label_subbranches_dir,\
+        _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,\
+        _test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,_saver=saver)
     
-def small_ucihar_task():
+
+def ucihar_small_baseline_task():
+    data_name="ucihar_small"
+    data_config=my_config.ucihar_small_baseline_config
+    tar_group_id=0
+    device_id=tar_group_id
+    baseline_task(data_name,data_config,tar_group_id,device_id)
+
+def ucihar_small_transfer_task():
+    data_name="ucihar_small"
+    data_config=my_config.ucihar_small_transfer_config
+    tar_group_id=1
+    device_id=tar_group_id
+    transfer_with_reconstruct_task(data_name,data_config,tar_group_id,device_id)
+
+
+

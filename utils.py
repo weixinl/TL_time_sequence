@@ -1,7 +1,7 @@
 from my_env import *
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from config import config_dict
+# import my_config
 from sklearn.preprocessing import StandardScaler
 
 def os_check_dir(_dir):
@@ -449,16 +449,16 @@ def lists_to_dataloader(_feature_list,_label_list,_domain_list):
     dataloader=DataLoader(dataset,batch_size=config_dict["batch_size"], shuffle=True, drop_last=True)
     return dataloader
 
-def zipped_dataset_to_dataloader(_zipped_dataset):
+def zipped_dataset_to_dataloader(_zipped_dataset,_batch_size):
     feature_list=_zipped_dataset.feature_list
     label_list=_zipped_dataset.label_list
     domain_list=_zipped_dataset.domain_list
     dataset=My_Dataset(feature_list,label_list,domain_list)
-    dataloader=DataLoader(dataset,batch_size=config_dict["batch_size"], shuffle=True, drop_last=True)
+    dataloader=DataLoader(dataset,batch_size=_batch_size, shuffle=True, drop_last=True)
     return dataloader
 
-if __name__=="__main__":
-    # merge_raw_dataset()
-    # split_dataset_by_subject_group()
-    split_subject_group(6,0.5)
+# if __name__=="__main__":
+#     # merge_raw_dataset()
+#     # split_dataset_by_subject_group()
+#     split_subject_group(6,0.5)
 

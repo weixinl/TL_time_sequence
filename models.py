@@ -9,18 +9,20 @@ def my_standardize(_feature_prev):
     return feature_new
 
 class Baseline(object):
-    def __init__(self,_config_dict,_saver,_device_id=7):
+    def __init__(self,_config,_saver,_device_id=0):
         super(Baseline, self).__init__()
-        self.epoch_num=_config_dict["epoch_num"]
-        self.lr=_config_dict["lr"]
-        self.momentum=_config_dict["momentum"]
-        self.batch_size=_config_dict["batch_size"]
+        self.epoch_num=_config["epoch_num"]
+        self.lr=_config["lr"]
+        self.momentum=_config["momentum"]
+        self.batch_size=_config["batch_size"]
+        self.attr_num=_config["attr_num"]
+        self.window_size=_config["window_size"]
         self.saver=_saver
         
         self.device=torch.device('cuda:'+str(_device_id) if torch.cuda.is_available() else 'cpu')
 
         self.loss_obj=nn.CrossEntropyLoss()
-        self.model=Classify_Network().to(self.device)
+        self.model=Baseline_Network(_config,self.device).to(self.device)
         self.optimizer = optim.SGD(params=self.model.parameters(), lr=self.lr, momentum=self.momentum)
     
     def train(self,_src_train_loader,_src_valid_loader,_tar_loader):
@@ -40,7 +42,7 @@ class Baseline(object):
                 feature= feature.to(self.device).float()
                 label = label.to(self.device).long()
                 # prepare for convolutional layer
-                feature = feature.view(-1, 9, 1, 128)
+                feature = feature.view(-1, self.attr_num, 1, self.window_size)
                 one_hot_label_predict = self.model(feature)
                 # print("one_hot_label_predict: ")
                 # print(one_hot_label_predict)
@@ -77,7 +79,7 @@ class Baseline(object):
                 for index,(feature, label, domain) in enumerate(_tar_loader):
                     feature= feature.to(self.device).float()
                     label = label.to(self.device).long()
-                    feature = feature.view(-1, 9, 1, 128)
+                    feature = feature.view(-1, self.attr_num, 1, self.window_size)
                     one_hot_label_predict = self.model(feature)
                     _, label_predict = torch.max(one_hot_label_predict, 1)
                     tar_acc_cnt+=(label_predict == label).sum()
@@ -1102,6 +1104,7 @@ class Label_Branch_Pretrain_Share_Encoder(nn.Module):
 class Transfer_Domain_Branch_Pretrain(nn.Module):
     def __init__(self,_config,_device_id=0):
         super(Transfer_Domain_Branch_Pretrain, self).__init__()
+        self.config=_config
         self.epoch_num=_config["domain_branch_epoch_num"]
         self.lr=_config["domain_branch_lr"]
         self.momentum=_config["domain_branch_momentum"]
@@ -1122,7 +1125,7 @@ class Transfer_Domain_Branch_Pretrain(nn.Module):
         train_batch_num=train_set_size//self.batch_size
         valid_batch_num=valid_set_size//self.batch_size
 
-        domain_branch=Domain_Branch(self.domain_num,self.device).to(self.device)
+        domain_branch=Domain_Branch(self.config,self.device).to(self.device)
 
         domain_branch_optimizer=optim.SGD(params=domain_branch.parameters(), lr=self.lr, momentum=self.momentum)
         
@@ -1181,6 +1184,7 @@ class Transfer_Domain_Branch_Pretrain(nn.Module):
 class Transfer_Label_Branch_Pretrain(nn.Module):  
     def __init__(self,_config,_device_id=0):
         super(Transfer_Label_Branch_Pretrain, self).__init__()
+        self.config=_config
         self.epoch_num=_config["label_branch_epoch_num"]
         self.lr=_config["label_branch_lr"]
         self.momentum=_config["label_branch_momentum"]
@@ -1210,7 +1214,7 @@ class Transfer_Label_Branch_Pretrain(nn.Module):
         for subbranch_id in range(self.domain_num):
             train_dataloader=_train_dataloader_list[subbranch_id]
             valid_dataloader=_valid_dataloader_list[subbranch_id]
-            subbranch=Label_Subbranch(self.label_num,self.device).to(self.device)
+            subbranch=Label_Subbranch(self.config,self.device).to(self.device)
             subbranch_model_path=_subbranches_dir+"/label_subbranch_"+str(subbranch_id)+".pkl"
             subbranch_saver=savers.Transfer_Label_Subbranch_Saver(subbranch_model_path)
             subbranch_optimizer = optim.SGD(params=subbranch.parameters(), lr=self.lr, momentum=self.momentum)
@@ -1280,22 +1284,24 @@ class Transfer_Label_Branch_Pretrain(nn.Module):
 
 
 class Transfer_With_Reconstruct(nn.Module):
-    def __init__(self,_config_dict,_domain_num,_label_num,_device_id=0):
+    def __init__(self,_config,_device_id=0):
         super(Transfer_With_Reconstruct, self).__init__()
-        self.epoch_num=_config_dict["epoch_num"]
-        self.lr=_config_dict["lr"]
-        self.momentum=_config_dict["momentum"]
-        self.batch_size=_config_dict["batch_size"]
-        self.domain_num=_domain_num
-        self.label_num=_label_num
+        self.config=_config
+        self.epoch_num=_config["epoch_num"]
+        self.lr=_config["lr"]
+        self.momentum=_config["momentum"]
+        self.batch_size=_config["batch_size"]
+        self.domain_num=_config["domain_num"]
+        self.label_num=_config["label_num"]
 
         self.device=torch.device('cuda:'+str(_device_id) if torch.cuda.is_available() else 'cpu')
 
         self.cross_entropy_loss_obj=nn.CrossEntropyLoss()
         
-        self.model=Transfer_Network_With_Reconstruct(_domain_num,_label_num,self.device).to(self.device)
+        self.model=Transfer_Network_With_Reconstruct(self.config,self.device).to(self.device)
 
-    def train_model(self,_pretrain_domain_branch_path,_pretrain_subbranches_dir,_train_dataloader,_valid_dataloader,_test_dataloader,_tar_group_id,_saver):
+    def train_model(self,_pretrain_domain_branch_path,_pretrain_subbranches_dir,\
+        _train_dataloader,_valid_dataloader,_test_dataloader,_tar_group_id,_saver):
         self.model.domain_branch.load_state_dict(torch.load(_pretrain_domain_branch_path))
         self.saver=_saver
         for subbranch_id in range(self.domain_num):
@@ -1306,7 +1312,7 @@ class Transfer_With_Reconstruct(nn.Module):
         # print("label branch parameters:")
         # print(list(self.model.label_branch.parameters()))
         parameters=self.model.get_parameters()
-        optimizer=optim.SGD(params=parameters, lr=self.lr/10, momentum=self.momentum)
+        optimizer=optim.SGD(params=parameters, lr=self.lr, momentum=self.momentum)
 
         train_set_size=len(_train_dataloader.dataset)
         valid_set_size=len(_valid_dataloader.dataset)
