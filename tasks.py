@@ -486,7 +486,7 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
 def ucihar_small_baseline_task():
     data_name="ucihar_small"
     data_config=my_config.ucihar_small_baseline_config
-    tar_group_id=0
+    tar_group_id=2
     device_id=tar_group_id
     baseline_task(data_name,data_config,tar_group_id,device_id)
 
