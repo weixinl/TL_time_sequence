@@ -66,7 +66,7 @@ class Baseline(object):
                 for index,(feature, label, domain) in enumerate(_src_valid_loader):
                     feature= feature.to(self.device).float()
                     label = label.to(self.device).long()
-                    feature = feature.view(-1, 9, 1, 128)
+                    feature = feature.view(-1, self.attr_num, 1, self.window_size)
                     one_hot_label_predict = self.model(feature)
                     _, label_predict = torch.max(one_hot_label_predict, 1)
                     src_valid_acc_cnt+=(label_predict == label).sum()
@@ -1109,6 +1109,8 @@ class Transfer_Domain_Branch_Pretrain(nn.Module):
         self.lr=_config["domain_branch_lr"]
         self.momentum=_config["domain_branch_momentum"]
         self.batch_size=_config["domain_branch_batch_size"]
+        self.attr_num=_config["attr_num"]
+        self.window_size=_config["window_size"]
         # self.domain_branch_saver=_domain_branch_saver
         # self.label_branch_saver=_label_branch_saver
         # self.saver=_saver
@@ -1144,7 +1146,7 @@ class Transfer_Domain_Branch_Pretrain(nn.Module):
                         domain[entry_id]-=1
                 domain = domain.to(self.device).long()
 
-                feature = feature.view(-1, 9, 1, 128)
+                feature = feature.view(-1, self.attr_num, 1, self.window_size)
                 domain_prob_vec_predict = domain_branch(feature)
 
 
@@ -1169,14 +1171,14 @@ class Transfer_Domain_Branch_Pretrain(nn.Module):
                         if(domain_item>_tar_group_id):
                             domain[entry_id]-=1
                     domain = domain.to(self.device).long()
-                    feature = feature.view(-1, 9, 1, 128)
+                    feature = feature.view(-1, self.attr_num, 1,self.window_size)
                     domain_probs_predict = domain_branch(feature)
                     _, domain_predict = torch.max(domain_probs_predict, 1)
                     valid_domain_acc_cnt += (domain_predict == domain).sum()
             valid_domain_acc=float(valid_domain_acc_cnt)/(valid_batch_num*self.batch_size)
 
             print('Epoch_id: [{}/{}], valid_domain_acc: {:.4f}'.format(epoch_id, self.epoch_num, valid_domain_acc))
-            self.domain_branch_saver.add_log(valid_domain_acc,domain_branch,epoch_id)
+            self.domain_branch_saver.add_log(train_domain_acc,valid_domain_acc,domain_branch,epoch_id)
 
         self.domain_branch_saver.final_print()
 
@@ -1185,6 +1187,8 @@ class Transfer_Label_Branch_Pretrain(nn.Module):
     def __init__(self,_config,_device_id=0):
         super(Transfer_Label_Branch_Pretrain, self).__init__()
         self.config=_config
+        self.attr_num=_config["attr_num"]
+        self.window_size=_config["window_size"]
         self.epoch_num=_config["label_branch_epoch_num"]
         self.lr=_config["label_branch_lr"]
         self.momentum=_config["label_branch_momentum"]
@@ -1240,7 +1244,7 @@ class Transfer_Label_Branch_Pretrain(nn.Module):
                 feature= feature.to(self.device).float()
                 label = label.to(self.device).long()
                 
-                feature = feature.view(-1, 9, 1, 128)
+                feature = feature.view(-1, self.attr_num, 1, self.window_size)
                 label_prob_vec_predict,_ = _subbranch(feature)
 
                 label_loss=self.cross_entropy_loss_obj(label_prob_vec_predict,label)
@@ -1268,7 +1272,7 @@ class Transfer_Label_Branch_Pretrain(nn.Module):
 
                     feature= feature.to(self.device).float()
                     label = label.to(self.device).long()
-                    feature = feature.view(-1, 9, 1, 128)
+                    feature = feature.view(-1, self.attr_num, 1, self.window_size)
                     label_prob_vec_predict,_ = _subbranch(feature)
                     
                     _, label_predict = torch.max(label_prob_vec_predict, 1)
@@ -1293,6 +1297,8 @@ class Transfer_With_Reconstruct(nn.Module):
         self.batch_size=_config["batch_size"]
         self.domain_num=_config["domain_num"]
         self.label_num=_config["label_num"]
+        self.attr_num=_config["attr_num"]
+        self.window_size=_config["window_size"]
 
         self.device=torch.device('cuda:'+str(_device_id) if torch.cuda.is_available() else 'cpu')
 
@@ -1350,7 +1356,7 @@ class Transfer_With_Reconstruct(nn.Module):
                 # print("domain:")
                 # print(domain)
                 # prepare for convolutional layer
-                feature = feature.view(-1, 9, 1, 128)
+                feature = feature.view(-1, self.attr_num, 1, self.window_size)
                 label_vec_predict,domain_vec_predict,reconstruct_loss = self.model(feature)
                 # print("one_hot_label_predict: ")
                 # print(one_hot_label_predict)
@@ -1359,7 +1365,9 @@ class Transfer_With_Reconstruct(nn.Module):
                 label_loss=self.cross_entropy_loss_obj(label_vec_predict,label)
                 domain_loss=self.cross_entropy_loss_obj(domain_vec_predict,domain)
 
-                loss=label_loss+0.1*domain_loss+reconstruct_loss
+                # print("label_loss: "+str(label_loss.item())+",domain_loss: "+str(domain_loss.item())\
+                #     +",reconstruct_loss: "+str(reconstruct_loss.item()))
+                loss=label_loss+5*domain_loss+1*reconstruct_loss
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -1408,7 +1416,7 @@ class Transfer_With_Reconstruct(nn.Module):
             for index,(feature, label, domain) in enumerate(_dataloader):
                 feature= feature.to(self.device).float()
                 label = label.to(self.device).long()
-                feature = feature.view(-1, 9, 1, 128)
+                feature = feature.view(-1, self.attr_num, 1, self.window_size)
                 label_vec_predict,_,_= self.model(feature)
                 _, label_predict = torch.max(label_vec_predict, 1)
                 acc_cnt+=(label_predict == label).sum()

@@ -52,3 +52,9 @@ Lobov S., Krilova N., Kastalskiy I., Kazantsev V., Makarov V.A. Latent Factors L
 Supported by the Ministry of Education and Science of the Russian Federation in the framework of megagrant allocation in accordance with the decree of the government of the Russian Federation №220, project № 14.Y26.31.0022 
 
 
+## emg_normal
+label num: 10
+subject num: 4
+each subject 200 items
+
+

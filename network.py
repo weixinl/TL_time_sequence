@@ -65,7 +65,7 @@ class Domain_Branch(nn.Module):
         self.window_size=_config["window_size"]
 
         super(Domain_Branch,self).__init__()
-        self.bn=nn.BatchNorm2d(9)
+        self.bn=nn.BatchNorm2d(self.attr_num)
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels=self.attr_num, out_channels=16, kernel_size=(1, 9)),
             nn.BatchNorm2d(16),
@@ -110,7 +110,7 @@ class Transfer_Encoder(nn.Module):
         self.domain_num=_config["domain_num"]
         self.attr_num=_config["attr_num"]
         self.window_size=_config["window_size"]
-        self.bn1=nn.BatchNorm2d(9)
+        self.bn1=nn.BatchNorm2d(self.attr_num)
         # 9*1*128
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels=self.attr_num, out_channels=32, kernel_size=(1, 9)),

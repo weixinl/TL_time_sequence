@@ -82,22 +82,33 @@ class Transfer_Saver(object):
         df_best_model_info.to_csv(self.best_model_info_path)
 
 class Transfer_Domain_Branch_Saver(object):
-    def __init__(self,_best_model_path):
+    def __init__(self,_best_model_path,_best_model_info_path,_log_path):
 
         self.best_model_path=_best_model_path
+        self.best_model_info_path=_best_model_info_path
+        self.log_path=_log_path
+        self.log=[]
+        self.best_model_info=[]
         self.max_valid_domain_acc=0
         self.best_epoch_id=-1
     
-    def add_log(self,_valid_domain_acc,_model,_epoch_id):
-
-        if(_valid_domain_acc>self.max_valid_domain_acc):
-            self.max_valid_domain_acc=_valid_domain_acc
+    def add_log(self,_train_acc,_valid_acc,_model,_epoch_id):
+        self.log.append({"epoch_id":_epoch_id,"train_acc":_train_acc,\
+            "valid_acc":_valid_acc})
+        if(_valid_acc>self.max_valid_domain_acc):
+            self.max_valid_domain_acc=_valid_acc
             self.best_epoch_id=_epoch_id
+            self.best_model_info=[{"epoch_id":_epoch_id,"train_acc":_train_acc,\
+            "valid_acc":_valid_acc}]
             torch.save(_model.state_dict(),self.best_model_path)
     
     def final_print(self):
         print("best epoch id: "+str(self.best_epoch_id))
         print("max valid domain acc: "+str(self.max_valid_domain_acc))
+        df_log=pd.DataFrame(self.log)
+        df_log.to_csv(self.log_path)
+        df_best_model_info=pd.DataFrame(self.best_model_info)
+        df_best_model_info.to_csv(self.best_model_info_path)
 
 
 class Transfer_Label_Subbranch_Saver(object):

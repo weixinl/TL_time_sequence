@@ -445,18 +445,31 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
     utils.os_check_dir(best_model_dir)
     best_model_path=best_model_dir+"/best_model_tar_group_id_"+str(_tar_group_id)+".pkl"
 
-    tmp_models_dir=cwd_abs_path+"/tmp_models/"+_data_name
-    utils.os_check_dir(tmp_models_dir)
-    best_domain_branch_path=tmp_models_dir+"/best_domain_tar_group_id_"+str(_tar_group_id)+".pkl"
-
     train_dataloader,valid_dataloader,test_dataloader=\
-        get_data.get_dataloaders(groups_dir,group_num,_tar_group_id,_config["batch_size"])
-    
+    get_data.get_dataloaders(groups_dir,group_num,_tar_group_id,_config["batch_size"])
+
     # domain branch pretrain
+    domain_pretrain_results_dir=cwd_abs_path+"/domain_pretrain_results/"+_data_name
+    utils.os_check_dir(domain_pretrain_results_dir)
+    domain_pretrain_best_models_dir=domain_pretrain_results_dir+"/best_models"
+    utils.os_check_dir(domain_pretrain_best_models_dir)
+    domain_pretrain_best_model_path=domain_pretrain_best_models_dir+\
+        "/domain_branch_best_model_tar_group_id_"+str(_tar_group_id)+".pkl"
+    domain_pretrain_best_model_info_dir=domain_pretrain_results_dir+"/best_model_infos"
+    utils.os_check_dir(domain_pretrain_best_model_info_dir)
+    domain_pretrain_best_model_info_path=domain_pretrain_best_model_info_dir+\
+        "/best_domain_branch_info_tar_group_id_"+str(_tar_group_id)+".csv"
+    domain_pretrain_log_dir=domain_pretrain_results_dir+"/log"
+    utils.os_check_dir(domain_pretrain_log_dir)
+    domain_pretrain_log_path=\
+        domain_pretrain_log_dir+"/log_domain_pretrain_tar_group_id_"+str(_tar_group_id)+".csv"
+
     transfer_domain_branch_pretrain_obj=models.Transfer_Domain_Branch_Pretrain(_config=_config,\
         _device_id=_device_id)
 
-    transfer_domain_branch_saver=savers.Transfer_Domain_Branch_Saver(best_domain_branch_path)
+    transfer_domain_branch_saver=savers.Transfer_Domain_Branch_Saver(\
+        domain_pretrain_best_model_path,domain_pretrain_best_model_info_path,\
+        domain_pretrain_log_path)
     transfer_domain_branch_pretrain_obj.domain_branch_pretrain(_train_dataloader=train_dataloader,\
         _valid_dataloader=valid_dataloader,_tar_group_id=_tar_group_id,\
         _domain_branch_saver=transfer_domain_branch_saver)
@@ -465,8 +478,8 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
     src_domain_specific_a_dataloader_list,src_domain_specific_b_dataloader_list=\
         get_data.get_domain_specific_dataloader_lists(groups_dir,group_num,_tar_group_id,\
         _config["label_branch_batch_size"])
-    tmp_models_dir=cwd_abs_path+"/tmp_models/"+"data_name"
-    label_subbranches_dir=tmp_models_dir+"/tar_group_"+str(_tar_group_id)
+    label_pretrain_results_dir=cwd_abs_path+"/label_pretrain_results/"+_data_name
+    label_subbranches_dir=label_pretrain_results_dir+"/tar_group_"+str(_tar_group_id)
     utils.os_check_dir(label_subbranches_dir)
     label_branch_pretrain_obj=models.Transfer_Label_Branch_Pretrain(_config,_device_id)
     label_branch_pretrain_obj.subbranches_pretrain(\
@@ -477,7 +490,7 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
     # train
     saver=savers.Transfer_Saver(log_save_path,best_model_info_path,best_model_path)
     transfer_obj=models.Transfer_With_Reconstruct(_config=_config,_device_id=_device_id)
-    transfer_obj.train_model(_pretrain_domain_branch_path=best_domain_branch_path,\
+    transfer_obj.train_model(_pretrain_domain_branch_path=domain_pretrain_best_model_path,\
         _pretrain_subbranches_dir=label_subbranches_dir,\
         _train_dataloader=train_dataloader,_valid_dataloader=valid_dataloader,\
         _test_dataloader=test_dataloader,_tar_group_id=_tar_group_id,_saver=saver)
@@ -486,16 +499,41 @@ def transfer_with_reconstruct_task(_data_name,_config,_tar_group_id,_device_id=0
 def ucihar_small_baseline_task():
     data_name="ucihar_small"
     data_config=my_config.ucihar_small_baseline_config
-    tar_group_id=2
-    device_id=tar_group_id
-    baseline_task(data_name,data_config,tar_group_id,device_id)
+    for tar_group_id in range(5):
+        device_id=tar_group_id
+        baseline_task(data_name,data_config,tar_group_id,device_id)
 
 def ucihar_small_transfer_task():
     data_name="ucihar_small"
     data_config=my_config.ucihar_small_transfer_config
-    tar_group_id=1
-    device_id=tar_group_id
-    transfer_with_reconstruct_task(data_name,data_config,tar_group_id,device_id)
+    for tar_group_id in range(5):
+        device_id=tar_group_id
+        transfer_with_reconstruct_task(data_name,data_config,tar_group_id,device_id)
 
+def emg_normal_baseline_task():
+    data_name="emg_normal"
+    data_config=my_config.emg_normal_baseline_config
+    for tar_group_id in range(4):
+        device_id=tar_group_id
+        baseline_task(data_name,data_config,tar_group_id,device_id)
 
+def emg_normal_transfer_task():
+    data_name="emg_normal"
+    data_config=my_config.emg_normal_transfer_config
+    for tar_group_id in range(4):
+        device_id=tar_group_id
+        transfer_with_reconstruct_task(data_name,data_config,tar_group_id,device_id)
 
+def emg_aggressive_baseline_task():
+    data_name="emg_aggressive"
+    data_config=my_config.emg_aggressive_baseline_config
+    for tar_group_id in range(4):
+        device_id=tar_group_id
+        baseline_task(data_name,data_config,tar_group_id,device_id)
+
+def emg_aggressive_transfer_task():
+    data_name="emg_aggressive"
+    data_config=my_config.emg_aggressive_transfer_config
+    for tar_group_id in range(4):
+        device_id=tar_group_id
+        transfer_with_reconstruct_task(data_name,data_config,tar_group_id,device_id)

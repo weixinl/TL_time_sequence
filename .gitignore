@@ -3,5 +3,7 @@ data/
 prev/
 results_prev/
 results/
+domain_pretrain_results/
+label_pretrain_results/
 shells_by_device/
 tmp_models/
